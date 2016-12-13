@@ -34,10 +34,10 @@ siremismatch$check <- ifelse(siremismatch$sire==siremismatch$sireOrig,1,0)
 dammismatch <- na.omit(checkPED[,c('ID','dam','damOrig')])
 dammismatch$check <- ifelse(dammismatch$dam==dammismatch$damOrig,1,0)
 
-## % mismatch for sires 
+## % mismatch for dams 
 1-sum(dammismatch$check)/nrow(dammismatch)
 
-## % mismatch for sires overall data
+## % mismatch for dams overall data
 1-sum(dammismatch$check)/nrow(checkPED)
 #####################################################################################
 
