@@ -53,7 +53,7 @@
 - png plot of number of opposite homozygotes  
 - Parent file after qc (always called 'parentsafterqc.csv')  
 
-The generated pedigree with the following headers  
+##### The generated pedigree with the following headers  
          - ID                    : The IDs of the offspring   
          - sire                  : The sire (from the opposite homozygote [OH] approach)  
          - OHsire                : Number of markers that are OH between animal (ID) and sire (pseudo-genotyping error)  
@@ -63,7 +63,6 @@ The generated pedigree with the following headers
          - OHsirepossib          : Number of markers that are OH between animal (ID) and alternate sires (pseudo-genotyping error)  
          - dampossib             : Alternative dams, this happens when another dam have low number of OH and below the threshold  
          - OHdampossib           : Number of markers that are OH between animal (ID) and alternate dams (pseudo-genotyping error)  
-
 
 
 ### Disclaimer : You use the script at your own risk :)
