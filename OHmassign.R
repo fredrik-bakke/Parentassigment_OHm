@@ -214,6 +214,7 @@ OHm <- function(inpgeno,parentfile,qc=c(geno=0.05,mind=0.10,maf=0.01,hwe=1e-6,th
     cat('\n')
     enddate <- paste('ends ...',date(),' ....',sep='')
     cat(strdate,'\n',enddate)
+    write.table(matchacheckconst,paste(outfile,'match.csv',sep=''),quote=F,row.names=F,col.names=T,sep=',')
     return(matchacheckconst)
   }
 }
