@@ -49,7 +49,7 @@
 
 
 
-### Disclaimer : You ise the script at your own risk :)
+### Disclaimer : You use the script at your own risk :)
 
 #### The script was written in close discussions with 
       Luqman Aslam (luqman.aslam@nofima.no)
