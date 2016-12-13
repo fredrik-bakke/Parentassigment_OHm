@@ -8,13 +8,13 @@
      - Plink binary file format  for the genotype data
      - comma separated (.csv) text file containing parental IDs and sex(M/F or 1/2). There should be a header (ID, Sex)  
 
-### Argument  
-      - inpgeno='MHrecode'  
-      - parentfile='parents.txt'  
+### Argument  (see the example_run.R file on how to run the example file)
+      - inpgeno='example_001'  
+      - parentfile='parents.csv'  
       - qc=c(geno=0.05,mind=0.20,maf=0.05,hwe=1e-6,thin=0.9999,chrset=30)  
       - threshOMM=100  
       - matchchecks=F  
-      - outfile='MHparassign'  
+      - outfile='example_001_OH'  
 
 #### inpgeno :: The prefix of the PLINK binary file  
 #### parentfile :: comma separated file with header (ID, Sex) and genotyped parents.  See the example below  
