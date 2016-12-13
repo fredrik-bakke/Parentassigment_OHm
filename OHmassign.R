@@ -67,7 +67,7 @@ OHm <- function(inpgeno,parentfile,qc=c(geno=0.05,mind=0.10,maf=0.01,hwe=1e-6,th
     cat('... Genotypes imported and edited ...\n')
     
     #### parental data with IDs and Sex of parent
-    parents <- read.table('parents.txt',header=T,stringsAsFactors=F)
+    parents <- read.table(paste(parentfile,sep=''),header=T,stringsAsFactors=F,sep=',')
     colnames(parents) <- c('ID','Sex')
     offspring <- ids[!ids$ID %in% parents$ID,]
     
