@@ -1,6 +1,6 @@
-# Parentage assignment with opposite homozygote (OH) method
-### Part of the script is sourced from Ferdosi M. and Boerner V. 2014 to undertake fast OH pairwise counts  
-### Plink v2 is also used to undertake quality control on the genotype data and also transform the data from binary/PED allele (AA/AB/BA/BB - 11/12/21/22) to genotype format (0/1/2).
+## Parentage assignment with opposite homozygote (OH) method
+#### Part of the script is sourced from [Ferdosi M. and Boerner V. 2014](http://www.sciencedirect.com/science/article/pii/S1871141314002625) to undertake fast OH pairwise counts  
+#### Plink v2 is also used to undertake quality control on the genotype data and also transform the data from binary/PED allele (AA/AB/BA/BB - 11/12/21/22) to genotype format (0/1/2).
 
 
 ### Requirement 
@@ -12,4 +12,4 @@
         2,M
         3,F
 
-
+ [Garrick et al. (2009)](http://gsejournal.biomedcentral.com/articles/10.1186/1297-9686-41-55) 
