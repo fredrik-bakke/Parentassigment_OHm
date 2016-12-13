@@ -1,6 +1,6 @@
 ####### Testing the example genotype file ########
 inpgeno='example_001';  
-parentfile='parents.txt';
+parentfile='parents.csv';
 qc=c(geno=0.05,mind=0,maf=0.01,hwe=1e-6,thin=0.999,chrset=30);  
 threshOMM=25;  
 matchchecks=F;  
