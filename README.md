@@ -40,6 +40,7 @@
       matchchecks='pedigcheck.csv'   
       
       example format of the matchchecks file  
+          ID,checkID
           10,1  
           11,5   
           12,5 
