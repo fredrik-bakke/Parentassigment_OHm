@@ -108,9 +108,9 @@ OHm <- function(inpgeno,parentfile,qc=c(geno=0.05,mind=0.10,maf=0.01,hwe=1e-6,th
     iterchecks.anim <- round(nrow(offspring)/5,digits=0)
     for(i in 1:nrow(offspring)){
       OHid <- data.frame(ID=c(sires$sireID,offspring$ID[i]),stringsAsFactors=F)
-      animparOH <- ids[ids$ID %in% OHid$ID,2]
-      offsprinttested <- tail(animparOH,1)
-      OH.PDoffT <- data.frame(OPH=na.omit(OH.PD[animparOH,offsprinttested]),stringsAsFactors = F)
+      animparOH <- ids[ids$ID %in% OHid$ID,]
+      offsprinttested <- animparOH[animparOH$ID %in% offspring$ID[i],'ordercode']
+      OH.PDoffT <- data.frame(OPH=na.omit(OH.PD[animparOH$ordercode,offsprinttested]),stringsAsFactors = F)
       OH.PDoffT$ID <- rownames(OH.PDoffT)
       OH.PDoffT <- OH.PDoffT[which(OH.PDoffT$OPH<=threshOMM),]
       
@@ -131,9 +131,9 @@ OHm <- function(inpgeno,parentfile,qc=c(geno=0.05,mind=0.10,maf=0.01,hwe=1e-6,th
       }
       
       OHid <- data.frame(ID=c(dams$damID,offspring$ID[i]))
-      animparOH <- ids[ids$ID %in% OHid$ID,2]
-      offsprinttested <- tail(animparOH,1)
-      OH.PDoffT <- data.frame(OPH=na.omit(OH.PD[animparOH,offsprinttested]))
+      animparOH <- ids[ids$ID %in% OHid$ID,]
+      offsprinttested <- animparOH[animparOH$ID %in% offspring$ID[i],'ordercode']
+      OH.PDoffT <- data.frame(OPH=na.omit(OH.PD[animparOH$ordercode,offsprinttested]),stringsAsFactors = F)
       OH.PDoffT$ID <- rownames(OH.PDoffT) 
       OH.PDoffT <- OH.PDoffT[which(OH.PDoffT$OPH<=threshOMM),]
       
