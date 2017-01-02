@@ -1,6 +1,15 @@
 #!/usr/bin/Rscript
 
 OHm <- function(inpgeno,parentfile,qc=c(geno=0.05,mind=0.10,maf=0.01,hwe=1e-6,thin=1,chrset=30),threshOMM=25,matchchecks=F,outfile){
+  cat('\n')
+  cat('@*************************************************************************************@\n')
+  cat('@              Parentage assignment based on opposing homozygotes (OH)                @\n')
+  cat('@                                                                                     @\n')
+  cat('@    Fast OH computation based on algorithm of Ferdosi M. and Boerner V. (2014)       @\n')
+  cat('@                                                                    by: S.A. Boison  @\n')
+  cat('@*************************************************************************************@\n')
+  cat('\n')
+  
   if(!file.exists('plink.exe')){
     cat('... Plink version 1.90 needed !! ....')
     return()
