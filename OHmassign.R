@@ -41,7 +41,7 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
   high.H <- (mean(het$pHET) + 6 * sd(het$pHET))
   hetpoor <- het[which(het$pHET < less.H | het$pHET > high.H), ]
   write.table(hetpoor[, 1:2], "het.poor", sep = "\t", quote = F, col.names = F, row.names = F)
-  cat(nrow(hetpoor), "... animals with poor heterozygosity ...\n")
+  cat(nrow(hetpoor), "animals with poor heterozygosity ...\n")
   system(paste("plink.exe --silent --allow-no-sex --chr-set", qc[6], "--bfile tmp2 --remove het.poor --make-bed --out", outfile))
   unlink(c("het*", "nosex", "tmp*"))
 
@@ -69,7 +69,7 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
 
   if (matchchecks == F) {
     dat <- read.table(paste(outfile, ".raw", sep = ""), skip = 1)
-    cat("\n", nrow(dat), "... animals and\n", ncol(dat), " markers remaining for OH analysis ...\n\n")
+    cat("\n", nrow(dat), "animals and\n", ncol(dat), "markers remaining for OH analysis ...\n\n")
     ids <- data.frame(ID = as.vector(dat[, 2]), ordercode = seq_len(nrow(dat)), stringsAsFactors = F)
     dat <- data.matrix(dat[, -1:-6])
     dat[is.na(dat)] <- 9
@@ -93,8 +93,8 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
       stringsAsFactors = F
     )
     write.table(siredam, paste(outfolder, "/", "parentsafterqc.csv", sep = ""), quote = F, row.names = F, col.names = T, sep = ",")
-    cat("... total number of parents after QC ", nrow(siredam), " ...\n")
-    cat("... with ", nrow(sires), " sires and ", nrow(dams), " dams ...\n")
+    cat("... total number of parents after QC", nrow(siredam), "...\n")
+    cat("... with", nrow(sires), "sires and", nrow(dams), "dams ...\n")
 
     OH.PD <- fastOH(genotype = dat)
     OH.PDall <- OH.PD[lower.tri(OH.PD)]
@@ -189,12 +189,12 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
         write.table(OHmdone, paste(outfile, ".csv", sep = ""), quote = F, row.names = F, col.names = F, append = T, sep = ",")
       }
       if (i %% iterchecks.anim == 0) {
-        cat("... offspring", i, "... out of", nrow(offspring), " ... done\n")
+        cat("... offspring", i, "... out of", nrow(offspring), "... done\n")
       }
     }
     cat("\n")
     enddate <- paste("ends ...", date(), "...")
-    cat(strdate, "\n", enddate)
+    cat(strdate, "\n", enddate, sep = "")
     return(pedigreconst)
   } else if (matchchecks != F) {
     if (!file.exists(paste(matchchecks))) {
@@ -208,7 +208,7 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
 
     dat <- read.table(paste(outfile, ".raw", sep = ""), skip = 1)
     dat <- merge(dat, matchanimsall, by.x = 2, by.y = 1)
-    cat("\n", nrow(dat), " ... animals and\n", ncol(dat), " markers remaining for OH analysis ...\n\n")
+    cat("\n", nrow(dat), "animals and\n", ncol(dat), "markers remaining for OH analysis ...\n\n")
     ids <- data.frame(ID = as.vector(dat[, 1]), ordercode = seq_len(nrow(dat)), stringsAsFactors = F)
     dat <- data.matrix(dat[, -1:-6])
     dat[is.na(dat)] <- 9
@@ -236,12 +236,12 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
       )
       matchacheckconst <- rbind.data.frame(matchacheckconst, OHmmatchcheck, stringsAsFactors = F)
       if (i %% iterchecks.anim == 0) {
-        cat("... ", i, " ... out of ", nrow(matchanimsavail), " match checks ... done\n")
+        cat("...", i, "out of", nrow(matchanimsavail), "match checks ... done\n")
       }
     }
     cat("\n")
     enddate <- paste("ends ...", date(), "...")
-    cat(strdate, "\n", enddate)
+    cat(strdate, "\n", enddate, sep = "")
     write.table(matchacheckconst, paste(outfile, "match.csv", sep = ""), quote = F, row.names = F, col.names = T, sep = ",")
     return(matchacheckconst)
   }
