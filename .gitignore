@@ -1,3 +1,4 @@
 plink.exe
 out/*
+!out/.gitkeep
 Rplots.pdf
