@@ -69,7 +69,7 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
   if (matchchecks == F) {
     dat <- read.table(paste(outfile, ".raw", sep = ""), skip = 1)
     cat("\n", nrow(dat), "... animals and \n", ncol(dat), " markers remaining for OH analysis ...\n \n")
-    ids <- data.frame(ID = as.vector(dat[, 2]), ordercode = 1:nrow(dat), stringsAsFactors = F)
+    ids <- data.frame(ID = as.vector(dat[, 2]), ordercode = seq_len(nrow(dat)), stringsAsFactors = F)
     dat <- data.matrix(dat[, -1:-6])
     dat[is.na(dat)] <- 9
     rownames(dat) <- ids$ID
@@ -121,7 +121,7 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
 
     cat("\n... assigning offspring to parents based on the OH counts ...\n")
     iterchecks.anim <- round(nrow(offspring) / 5, digits = 0)
-    for (i in 1:nrow(offspring)) {
+    for (i in seq_len(nrow(offspring))) {
       OHid <- data.frame(ID = c(sires$sireID, offspring$ID[i]), stringsAsFactors = F)
       animparOH <- ids[ids$ID %in% OHid$ID, ]
       offsprinttested <- animparOH[animparOH$ID %in% offspring$ID[i], "ordercode"]
@@ -208,7 +208,7 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
     dat <- read.table(paste(outfile, ".raw", sep = ""), skip = 1)
     dat <- merge(dat, matchanimsall, by.x = 2, by.y = 1)
     cat("\n", nrow(dat), "... animals and \n", ncol(dat), " markers remaining for OH analysis ...\n \n")
-    ids <- data.frame(ID = as.vector(dat[, 1]), ordercode = 1:nrow(dat), stringsAsFactors = F)
+    ids <- data.frame(ID = as.vector(dat[, 1]), ordercode = seq_len(nrow(dat)), stringsAsFactors = F)
     dat <- data.matrix(dat[, -1:-6])
     dat[is.na(dat)] <- 9
     rownames(dat) <- ids$ID
@@ -222,7 +222,7 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
     matchacheckconst <- data.frame(ID = character(), check = character(), OHwithcheck = numeric())
     cat("\n... assigning offspring to parents based on the OH counts ...\n")
     iterchecks.anim <- round(nrow(matchanimsavail) / 5, digits = 0)
-    for (i in 1:nrow(matchanimsavail)) {
+    for (i in seq_len(nrow(matchanimsavail))) {
       OHid <- data.frame(ID = c(matchanimsavail$matchanims[i], matchanimsavail$ID[i]), stringsAsFactors = F)
       animparOH <- ids[ids$ID %in% OHid$ID, 2]
       offsprinttested <- ids[ids$ID %in% tail(OHid$ID, 1), 2]
