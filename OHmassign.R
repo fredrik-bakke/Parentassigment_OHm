@@ -183,11 +183,9 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
 
       pedigreconst <- rbind.data.frame(pedigreconst, OHmdone, stringsAsFactors = F)
 
-      if (i == 1) {
-        write.table(OHmdone, paste(outfile, ".csv", sep = ""), quote = F, row.names = F, col.names = T, sep = ",")
-      } else {
-        write.table(OHmdone, paste(outfile, ".csv", sep = ""), quote = F, row.names = F, col.names = F, append = T, sep = ",")
-      }
+
+      write.table(OHmdone, paste(outfile, ".csv", sep = ""), quote = F, row.names = F, col.names = (i == 1), append = (i != 1), sep = ",")
+
       if (i %% iterchecks.anim == 0) {
         cat("... offspring", i, "... out of", nrow(offspring), "... done\n")
       }
