@@ -29,20 +29,16 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
 
   # Check for the presence of required files
   if (!file.exists("plink.exe")) {
-    cat("... Plink version 1.90 needed !! ...")
-    return()
+    stop("... Plink version 1.90 needed !! ...")
   }
   if (!file.exists(paste(inpgeno, ".bim", sep = "")) | !file.exists(paste(inpgeno, ".bed", sep = "")) | !file.exists(paste(inpgeno, ".fam", sep = ""))) {
-    cat("... Plink binary genotype file needed\n The file you specified in not available !! ...")
-    return()
+    stop("... Plink binary genotype file needed\n The file you specified in not available !! ...")
   }
   if (!file.exists(parentfile)) {
-    cat("...The file you specified in not available !! ...")
-    return()
+    stop("...The file you specified in not available !! ...")
   }
   if (missing(matchchecks)) {
-    cat("... Specify if you want to undertake match checks or not !! ...")
-    return()
+    stop("... Specify if you want to undertake match checks or not !! ...")
   }
 
   # Setup
@@ -203,8 +199,7 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
     return(pedigreconst)
   } else if (matchchecks) {
     if (!file.exists(paste(matchchecks))) {
-      cat("... The file does not exist in the folder !! ...")
-      return()
+      stop("... The file does not exist in the folder !! ...")
     }
     cat("... checking known matches !! ...")
     matchanims <- read.table(matchchecks, header = T, stringsAsFactors = F, sep = ",")
