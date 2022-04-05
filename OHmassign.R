@@ -1,6 +1,23 @@
 #!/usr/bin/Rscript
 
-OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01, hwe = 1e-6, thin = 1, chrset = 30), threshOMM = 25, matchchecks = F, outfilename,  outfolder) {
+############ opposite homozygous Ferdosi M. and Boerner V. (2014)  ##############
+fastOH <- function(genotype) {
+  cat("\n... Starting  OH [ algorithm for fast OH by Ferdosi M. and Boerner V. (2014) ] assignment ...\n")
+  cm <- genotype - (floor(genotype / 9) * 8)
+  fpart <- floor(cm / 2)
+  lPart <- t(ceiling(((cm) - 2) / 2))
+  cat("... opposing homozygous loci counts started ...\n")
+  result <- (fpart %*% lPart) * (-1)
+  cat("... storing OH results in full matrix format ...\n")
+  result <- t(result) + result
+  return(result)
+}
+###################################################################################
+
+
+OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01, hwe = 1e-6, thin = 1, chrset = 30), threshOMM = 25, matchchecks = F, outfilename,  outfolder = ".") {
+  strdate <- paste("started ...", date(), "...")
+
   cat("
   @*************************************************************************************@
   @              Parentage assignment based on opposing homozygotes (OH)                @
@@ -8,9 +25,9 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
   @    Fast OH computation based on algorithm of Ferdosi M. and Boerner V. (2014)       @
   @                                                                    by: S.A. Boison  @
   @*************************************************************************************@
-  \n")
+  \n\n")
 
-  outfile <- paste(outfolder, "/", outfilename, sep = "")
+  # Check for the presence of required files
   if (!file.exists("plink.exe")) {
     cat("... Plink version 1.90 needed !! ...")
     return()
@@ -27,13 +44,14 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
     cat("... Specify if you want to undertake match checks or not !! ...")
     return()
   }
-  cat("\n")
-  strdate <- paste("started ...", date(), "...")
+
+  # Setup
   system(paste("plink.exe --silent --allow-no-sex --chr-set", qc[6], "--bfile", inpgeno, "--geno", qc[1], "--make-bed --out tmp"))
   system(paste("plink.exe --silent --allow-no-sex --chr-set", qc[6], "--bfile tmp --mind", qc[2], "--make-bed --out tmp1"))
   system(paste("plink.exe --silent --allow-no-sex --nonfounders --chr-set", qc[6], "--bfile tmp1 --maf", qc[3], "--hwe", qc[4], "--make-bed --out tmp2"))
   system(paste("plink.exe --silent --allow-no-sex --chr-set", qc[6], "--bfile tmp2 --het --out het"))
 
+  outfile <- paste(outfolder, outfilename, sep = "/")
   het <- read.table("het.het", header = T)
   het$pHET <- (het$N.NM. - het$O.HOM.) / het$N.NM.
   hist(het$pHET, breaks = 100, col = "green", xlab = "Sample Heterozygosity", xlim = c(0.1, 0.60), main = "")
@@ -41,35 +59,23 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
   high.H <- (mean(het$pHET) + 6 * sd(het$pHET))
   hetpoor <- het[which(het$pHET < less.H | het$pHET > high.H), ]
   write.table(hetpoor[, 1:2], "het.poor", sep = "\t", quote = F, col.names = F, row.names = F)
-  cat(nrow(hetpoor), "animals with poor heterozygosity ...\n")
+  cat("...", nrow(hetpoor), "animals with poor heterozygosity ...\n")
   system(paste("plink.exe --silent --allow-no-sex --chr-set", qc[6], "--bfile tmp2 --remove het.poor --make-bed --out", outfile))
-  unlink(c("het*", "nosex", "tmp*"))
+  unlink(c("het*", "nosex", "tmp*")) # Delete temporary files
 
   dat <- read.table(paste(outfile, ".bim", sep = ""))
   dat$sallele <- unique(dat[, 6])[2]
   write.table(dat[, c(2, 7)], "recodeallele.txt", quote = F, col.names = F, row.names = F)
   system(paste("plink.exe --silent --allow-no-sex --chr-set", qc[6], "--bfile", outfile, "--thin", qc[5], "--recode A --recode-allele recodeallele.txt --out", outfile))
-  unlink(c("recodeallele.txt"))
+  ### Cleanup
+  unlink("recodeallele.txt")
   rm(het, less.H, high.H, hetpoor, dat)
   gc()
+  ###
 
-  ############ opposite homozygous Ferdosi M. and Boerner V. (2014)  ##############
-  fastOH <- function(genotype) {
-    cat("\n... Starting  OH [ algorithm for fast OH by Ferdosi M. and Boerner V. (2014) ] assignment ...\n")
-    cm <- genotype - (floor(genotype / 9) * 8)
-    fpart <- floor(cm / 2)
-    lPart <- t(ceiling(((cm) - 2) / 2))
-    cat("... opposing homozygous loci counts started ...\n")
-    result <- (fpart %*% lPart) * (-1)
-    cat("... storing OH results in full matrix format ...\n")
-    result <- t(result) + result
-    return(result)
-  }
-  ###################################################################################
-
-  if (matchchecks == F) {
+  if (!matchchecks) {
     dat <- read.table(paste(outfile, ".raw", sep = ""), skip = 1)
-    cat("\n", nrow(dat), "animals and\n", ncol(dat), "markers remaining for OH analysis ...\n\n")
+    cat("\n...", nrow(dat), "animals and", ncol(dat), "markers remaining for OH analysis ...\n\n")
     ids <- data.frame(ID = as.vector(dat[, 2]), ordercode = seq_len(nrow(dat)), stringsAsFactors = F)
     dat <- data.matrix(dat[, -1:-6])
     dat[is.na(dat)] <- 9
@@ -92,7 +98,7 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
       data.frame(ID = dams$damID, sex = "F", stringsAsFactors = F),
       stringsAsFactors = F
     )
-    write.table(siredam, paste(outfolder, "/", "parentsafterqc.csv", sep = ""), quote = F, row.names = F, col.names = T, sep = ",")
+    write.table(siredam, paste(outfolder, "parentsafterqc.csv", sep = "/"), quote = F, row.names = F, col.names = T, sep = ",")
     cat("... total number of parents after QC", nrow(siredam), "...\n")
     cat("... with", nrow(sires), "sires and", nrow(dams), "dams ...\n")
 
@@ -109,10 +115,11 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
     plot(dens, lty = "dotted", col = "darkgreen", lwd = 2, main = "", xlab = "Number of opposite homozygote")
     dev.off()
 
-    ###
+    ### Cleanup
     rm(OH.PDall)
     gc()
     ###
+
     cat("... OH pedigree is been generated ...")
     pedigreconst <- data.frame(
       ID = character(), sire = character(), OHsire = numeric(),
@@ -145,8 +152,8 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
         OH.PDoffT <- OH.PDoffT[order(OH.PDoffT$OPH, decreasing = F), ]
         sirechosen <- OH.PDoffT$ID[1]
         sirechosenOH <- OH.PDoffT$OPH[1]
-        sirepossib <- paste(c(OH.PDoffT$ID[-1]), collapse = "/")
-        sirepossibOH <- paste(c(OH.PDoffT$OPH[-1]), collapse = "/")
+        sirepossib <- paste(OH.PDoffT$ID[-1], collapse = "/")
+        sirepossibOH <- paste(OH.PDoffT$OPH[-1], collapse = "/")
       }
 
       OHid <- data.frame(ID = c(dams$damID, offspring$ID[i]))
@@ -171,8 +178,8 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
         OH.PDoffT <- OH.PDoffT[order(OH.PDoffT$OPH, decreasing = F), ]
         damchosen <- OH.PDoffT$ID[1]
         damchosenOH <- OH.PDoffT$OPH[1]
-        dampossib <- paste(c(OH.PDoffT$ID[-1]), collapse = "/")
-        dampossibOH <- paste(c(OH.PDoffT$OPH[-1]), collapse = "/")
+        dampossib <- paste(OH.PDoffT$ID[-1], collapse = "/")
+        dampossibOH <- paste(OH.PDoffT$OPH[-1], collapse = "/")
       }
 
       OHmdone <- cbind.data.frame(
@@ -190,11 +197,11 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
         cat("... offspring", i, "... out of", nrow(offspring), "... done\n")
       }
     }
-    cat("\n")
-    enddate <- paste("ends ...", date(), "...")
-    cat(strdate, "\n", enddate, sep = "")
+
+    enddate <- paste("ended ...", date(), "...", "\n")
+    cat("\n", strdate, "\n", enddate, sep = "")
     return(pedigreconst)
-  } else if (matchchecks != F) {
+  } else if (matchchecks) {
     if (!file.exists(paste(matchchecks))) {
       cat("... The file does not exist in the folder !! ...")
       return()
@@ -206,7 +213,7 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
 
     dat <- read.table(paste(outfile, ".raw", sep = ""), skip = 1)
     dat <- merge(dat, matchanimsall, by.x = 2, by.y = 1)
-    cat("\n", nrow(dat), "animals and\n", ncol(dat), "markers remaining for OH analysis ...\n\n")
+    cat("\n...", nrow(dat), "animals and\n", ncol(dat), "markers remaining for OH analysis ...\n\n")
     ids <- data.frame(ID = as.vector(dat[, 1]), ordercode = seq_len(nrow(dat)), stringsAsFactors = F)
     dat <- data.matrix(dat[, -1:-6])
     dat[is.na(dat)] <- 9
@@ -237,9 +244,9 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
         cat("...", i, "out of", nrow(matchanimsavail), "match checks ... done\n")
       }
     }
-    cat("\n")
-    enddate <- paste("ends ...", date(), "...")
-    cat(strdate, "\n", enddate, sep = "")
+
+    enddate <- paste("ended ...", date(), "...")
+    cat("\n", strdate, "\n", enddate, "\n", sep = "")
     write.table(matchacheckconst, paste(outfile, "match.csv", sep = ""), quote = F, row.names = F, col.names = T, sep = ",")
     return(matchacheckconst)
   }

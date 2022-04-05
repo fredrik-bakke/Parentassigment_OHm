@@ -2,7 +2,8 @@ plink.exe
 Rplots.pdf
 
 out/*
-!out/.gitkeep
+!out/example_001_OH.png
+./example_001_OH*
 
 ### R ###
 # History files
