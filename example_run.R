@@ -10,7 +10,7 @@ source("OHmassign.R")
 example_001_OH <- OHm(inpgeno, parentfile, qc, threshOMM, matchchecks, outfile)
 
 ### import the orginal pedigree
-origPED <- read.table("example_001.pedigree", header = F, stringsAsFactors = F)
+origPED <- read.table(paste(inpgeno, ".fam", sep = ""), header = F, stringsAsFactors = F)
 colnames(origPED) <- c("ID", "sireOrig", "damOrig")
 
 #### merge the results from the OHm with orignal pedigree
