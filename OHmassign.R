@@ -15,7 +15,7 @@ fastOH <- function(genotype) {
 ###################################################################################
 
 
-OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01, hwe = 1e-6, thin = 1, chrset = 30), threshOMM = 25, matchchecks = F, outfilename,  outfolder = ".") {
+OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01, hwe = 1e-6, thin = 1, chrset = 30), threshOMM = 25, matchchecks = F, outfilename, outfolder = ".") {
   strdate <- paste("started ...", date(), "...")
 
   cat("
@@ -133,23 +133,18 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
       OH.PDoffT$ID <- rownames(OH.PDoffT)
       OH.PDoffT <- OH.PDoffT[which(OH.PDoffT$OPH <= threshOMM), ]
 
-      if (nrow(OH.PDoffT) == 0) {
-        sirechosen <- NA
-        sirechosenOH <- NA
-        sirepossib <- NA
-        sirepossibOH <- NA
-      } else if (nrow(OH.PDoffT) == 1) {
+      sirechosen <- NA
+      sirechosenOH <- NA
+      sirepossib <- NA
+      sirepossibOH <- NA
+      if (nrow(OH.PDoffT) > 0) {
         OH.PDoffT <- OH.PDoffT[order(OH.PDoffT$OPH, decreasing = F), ]
         sirechosen <- OH.PDoffT$ID[1]
         sirechosenOH <- OH.PDoffT$OPH[1]
-        sirepossib <- NA
-        sirepossibOH <- NA
-      } else if (nrow(OH.PDoffT) > 1) {
-        OH.PDoffT <- OH.PDoffT[order(OH.PDoffT$OPH, decreasing = F), ]
-        sirechosen <- OH.PDoffT$ID[1]
-        sirechosenOH <- OH.PDoffT$OPH[1]
-        sirepossib <- paste(OH.PDoffT$ID[-1], collapse = "/")
-        sirepossibOH <- paste(OH.PDoffT$OPH[-1], collapse = "/")
+        if (nrow(OH.PDoffT) > 1) {
+          sirepossib <- paste(OH.PDoffT$ID[-1], collapse = "/")
+          sirepossibOH <- paste(OH.PDoffT$OPH[-1], collapse = "/")
+        }
       }
 
       OHid <- data.frame(ID = c(dams$damID, offspring$ID[i]))
@@ -159,23 +154,18 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
       OH.PDoffT$ID <- rownames(OH.PDoffT)
       OH.PDoffT <- OH.PDoffT[which(OH.PDoffT$OPH <= threshOMM), ]
 
-      if (nrow(OH.PDoffT) == 0) {
-        damchosen <- NA
-        damchosenOH <- NA
-        dampossib <- NA
-        dampossibOH <- NA
-      } else if (nrow(OH.PDoffT) == 1) {
+      damchosen <- NA
+      damchosenOH <- NA
+      dampossib <- NA
+      dampossibOH <- NA
+      if (nrow(OH.PDoffT) > 0) {
         OH.PDoffT <- OH.PDoffT[order(OH.PDoffT$OPH, decreasing = F), ]
         damchosen <- OH.PDoffT$ID[1]
         damchosenOH <- OH.PDoffT$OPH[1]
-        dampossib <- NA
-        dampossibOH <- NA
-      } else if (nrow(OH.PDoffT) > 1) {
-        OH.PDoffT <- OH.PDoffT[order(OH.PDoffT$OPH, decreasing = F), ]
-        damchosen <- OH.PDoffT$ID[1]
-        damchosenOH <- OH.PDoffT$OPH[1]
-        dampossib <- paste(OH.PDoffT$ID[-1], collapse = "/")
-        dampossibOH <- paste(OH.PDoffT$OPH[-1], collapse = "/")
+        if (nrow(OH.PDoffT) > 1) {
+          dampossib <- paste(OH.PDoffT$ID[-1], collapse = "/")
+          dampossibOH <- paste(OH.PDoffT$OPH[-1], collapse = "/")
+        }
       }
 
       OHmdone <- cbind.data.frame(
@@ -185,7 +175,6 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
       )
 
       pedigreconst <- rbind.data.frame(pedigreconst, OHmdone, stringsAsFactors = F)
-
 
       write.table(OHmdone, paste(outfile, ".csv", sep = ""), quote = F, row.names = F, col.names = (i == 1), append = (i != 1), sep = ",")
 
@@ -197,6 +186,7 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
     enddate <- paste("ended ...", date(), "...", "\n")
     cat("\n", strdate, "\n", enddate, sep = "")
     return(pedigreconst)
+
   } else if (matchchecks) {
     if (!file.exists(paste(matchchecks))) {
       stop("... The file does not exist in the folder !! ...")
