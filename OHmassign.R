@@ -1,6 +1,6 @@
 #!/usr/bin/Rscript
 
-OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01, hwe = 1e-6, thin = 1, chrset = 30), threshOMM = 25, matchchecks = F, outfile) {
+OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01, hwe = 1e-6, thin = 1, chrset = 30), threshOMM = 25, matchchecks = F, outfilename,  outfolder) {
   cat("
   @*************************************************************************************@
   @              Parentage assignment based on opposing homozygotes (OH)                @
@@ -10,6 +10,7 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
   @*************************************************************************************@
   \n")
 
+  outfile <- paste(outfolder, "/", outfilename, sep = "")
   if (!file.exists("plink.exe")) {
     cat("... Plink version 1.90 needed !! ...")
     return()
@@ -91,7 +92,7 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
       data.frame(ID = dams$damID, sex = "F", stringsAsFactors = F),
       stringsAsFactors = F
     )
-    write.table(siredam, paste("parentsafterqc.csv", sep = ""), quote = F, row.names = F, col.names = T, sep = ",")
+    write.table(siredam, paste(outfolder, "/", "parentsafterqc.csv", sep = ""), quote = F, row.names = F, col.names = T, sep = ",")
     cat("... total number of parents after QC ", nrow(siredam), " ...\n")
     cat("... with ", nrow(sires), " sires and ", nrow(dams), " dams ...\n")
 
@@ -188,7 +189,7 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
         write.table(OHmdone, paste(outfile, ".csv", sep = ""), quote = F, row.names = F, col.names = F, append = T, sep = ",")
       }
       if (i %% iterchecks.anim == 0) {
-        cat("... offspring ", i, " ... out of ", nrow(offspring), " ... done\n")
+        cat("... offspring", i, "... out of", nrow(offspring), " ... done\n")
       }
     }
     cat("\n")

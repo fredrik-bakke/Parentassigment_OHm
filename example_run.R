@@ -1,13 +1,14 @@
 ####### Testing the example genotype file ########
-inpgeno <- "example_001"
-parentfile <- "parents.csv"
+inpgeno <- "example/example_001"
+parentfile <- "example/parents.csv"
 qc <- c(geno = 0.05, mind = 0, maf = 0.01, hwe = 1e-6, thin = 0.999, chrset = 30)
 threshOMM <- 25
 matchchecks <- F
 outfile <- "example_001_OH"
+outfolder <- "out"
 source("OHmassign.R")
 
-example_001_OH <- OHm(inpgeno, parentfile, qc, threshOMM, matchchecks, outfile)
+example_001_OH <- OHm(inpgeno, parentfile, qc, threshOMM, matchchecks, outfile, outfolder)
 
 ### import the orginal pedigree
 origPED <- read.table(paste(inpgeno, ".fam", sep = ""), header = F, stringsAsFactors = F)
