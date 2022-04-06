@@ -1,7 +1,7 @@
 #!/usr/bin/Rscript
 
-############ opposite homozygous Ferdosi M. and Boerner V. (2014)  ##############
 fastOH <- function(genotype) {
+  #' opposite homozygous Ferdosi M. and Boerner V. (2014)
   cat("\n... Starting  OH [ algorithm for fast OH by Ferdosi M. and Boerner V. (2014) ] assignment ...\n")
   cm <- genotype - (floor(genotype / 9) * 8)
   fpart <- floor(cm / 2)
@@ -12,10 +12,9 @@ fastOH <- function(genotype) {
   result <- t(result) + result
   return(result)
 }
-###################################################################################
 
 
-OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01, hwe = 1e-6, thin = 1, chrset = 30), threshOMM = 25, matchchecks = F, outfilename, outfolder = ".") {
+OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01, hwe = 1e-6, thin = 1, chrset = 30), threshOMM = 25, matchchecks = NULL, outfilename, outfolder = ".") {
   strdate <- paste("started ...", date(), "...")
 
   cat("
@@ -28,24 +27,20 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
   \n\n")
 
   # Check for the presence of required files
-  if (!file.exists("plink.exe")) {
+  if (!file.exists("plink.exe"))
     stop("... Plink version 1.90 needed !! ...")
-  }
-  if (!file.exists(paste(inpgeno, ".bim", sep = "")) | !file.exists(paste(inpgeno, ".bed", sep = "")) | !file.exists(paste(inpgeno, ".fam", sep = ""))) {
+  if (!file.exists(paste(inpgeno, ".bim", sep = "")) | !file.exists(paste(inpgeno, ".bed", sep = "")) | !file.exists(paste(inpgeno, ".fam", sep = "")))
     stop("... Plink binary genotype file needed\n The file you specified in not available !! ...")
-  }
-  if (!file.exists(parentfile)) {
+  if (!file.exists(parentfile))
     stop("...The file you specified in not available !! ...")
-  }
-  if (missing(matchchecks)) {
+  if (missing(matchchecks))
     stop("... Specify if you want to undertake match checks or not !! ...")
-  }
 
   # Setup
-  system(paste("plink.exe --silent --allow-no-sex --chr-set", qc[6], "--bfile", inpgeno, "--geno", qc[1], "--make-bed --out tmp"))
-  system(paste("plink.exe --silent --allow-no-sex --chr-set", qc[6], "--bfile tmp --mind", qc[2], "--make-bed --out tmp1"))
-  system(paste("plink.exe --silent --allow-no-sex --nonfounders --chr-set", qc[6], "--bfile tmp1 --maf", qc[3], "--hwe", qc[4], "--make-bed --out tmp2"))
-  system(paste("plink.exe --silent --allow-no-sex --chr-set", qc[6], "--bfile tmp2 --het --out het"))
+  system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile", inpgeno, "--geno", qc["geno"], "--make-bed --out tmp"))
+  system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile tmp --mind", qc["mind"], "--make-bed --out tmp1"))
+  system(paste("plink.exe --silent --allow-no-sex --nonfounders --chr-set", qc["chrset"], "--bfile tmp1 --maf", qc["maf"], "--hwe", qc["hwe"], "--make-bed --out tmp2"))
+  system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile tmp2 --het --out het"))
 
   outfile <- paste(outfolder, outfilename, sep = "/")
   het <- read.table("het.het", header = T)
@@ -56,20 +51,20 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
   hetpoor <- het[which(het$pHET < less.H | het$pHET > high.H), ]
   write.table(hetpoor[, 1:2], "het.poor", sep = "\t", quote = F, col.names = F, row.names = F)
   cat("...", nrow(hetpoor), "animals with poor heterozygosity ...\n")
-  system(paste("plink.exe --silent --allow-no-sex --chr-set", qc[6], "--bfile tmp2 --remove het.poor --make-bed --out", outfile))
+  system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile tmp2 --remove het.poor --make-bed --out", outfile))
   unlink(c("het*", "nosex", "tmp*")) # Delete temporary files
 
   dat <- read.table(paste(outfile, ".bim", sep = ""))
   dat$sallele <- unique(dat[, 6])[2]
   write.table(dat[, c(2, 7)], "recodeallele.txt", quote = F, col.names = F, row.names = F)
-  system(paste("plink.exe --silent --allow-no-sex --chr-set", qc[6], "--bfile", outfile, "--thin", qc[5], "--recode A --recode-allele recodeallele.txt --out", outfile))
+  system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile", outfile, "--thin", qc["thin"], "--recode A --recode-allele recodeallele.txt --out", outfile))
   ### Cleanup
   unlink("recodeallele.txt")
   rm(het, less.H, high.H, hetpoor, dat)
   gc()
   ###
 
-  if (!matchchecks) {
+  if (matchchecks == F | is.null(matchchecks) | is.na(matchchecks) | matchchecks == "") {
     dat <- read.table(paste(outfile, ".raw", sep = ""), skip = 1)
     cat("\n...", nrow(dat), "animals and", ncol(dat), "markers remaining for OH analysis ...\n\n")
     ids <- data.frame(ID = as.vector(dat[, 2]), ordercode = seq_len(nrow(dat)), stringsAsFactors = F)
@@ -178,19 +173,18 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
 
       write.table(OHmdone, paste(outfile, ".csv", sep = ""), quote = F, row.names = F, col.names = (i == 1), append = (i != 1), sep = ",")
 
-      if (i %% iterchecks.anim == 0) {
+      if (i %% iterchecks.anim == 0)
         cat("... offspring", i, "... out of", nrow(offspring), "... done\n")
-      }
     }
 
     enddate <- paste("ended ...", date(), "...", "\n")
     cat("\n", strdate, "\n", enddate, sep = "")
     return(pedigreconst)
 
-  } else if (matchchecks) {
-    if (!file.exists(paste(matchchecks))) {
+  } else { # Do match check
+    if (!file.exists(paste(matchchecks)))
       stop("... The file does not exist in the folder !! ...")
-    }
+
     cat("... checking known matches !! ...")
     matchanims <- read.table(matchchecks, header = T, stringsAsFactors = F, sep = ",")
     colnames(matchanims) <- c("ID", "matchanims")
@@ -225,14 +219,13 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
         OHwithcheck = OH.PDoffT$OPH
       )
       matchacheckconst <- rbind.data.frame(matchacheckconst, OHmmatchcheck, stringsAsFactors = F)
-      if (i %% iterchecks.anim == 0) {
+      if (i %% iterchecks.anim == 0)
         cat("...", i, "out of", nrow(matchanimsavail), "match checks ... done\n")
-      }
     }
 
+    write.table(matchacheckconst, paste(outfile, "match.csv", sep = ""), quote = F, row.names = F, col.names = T, sep = ",")
     enddate <- paste("ended ...", date(), "...")
     cat("\n", strdate, "\n", enddate, "\n", sep = "")
-    write.table(matchacheckconst, paste(outfile, "match.csv", sep = ""), quote = F, row.names = F, col.names = T, sep = ",")
     return(matchacheckconst)
   }
 }
