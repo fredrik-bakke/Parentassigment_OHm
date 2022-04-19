@@ -19,31 +19,31 @@ checkPED <- merge(example_001_OH, origPED, by = "ID")
 
 #####################################################################################
 #### check mismatches for sires and dams (omit unassigned sires or dams)
-siremismatch <- na.omit(checkPED[, c("ID", "sire", "sireOrig")])
-siremismatch$check <- ifelse(siremismatch$sire == siremismatch$sireOrig, 1, 0)
+sirematch <- na.omit(checkPED[, c("ID", "sire", "sireOrig")])
+sirematch$check <- ifelse(sirematch$sire == sirematch$sireOrig, 1, 0)
 
 ## % mismatch for sires
-cat("Mismath for sires:", 1 - sum(siremismatch$check) / nrow(siremismatch), "\n")
+cat("Proportion of matches for sires:", 1 - sum(sirematch$check) / nrow(sirematch), "\n")
 
 ## % mismatch for sires over all data
-cat("Mismath for sires over all data:", 1 - sum(siremismatch$check) / nrow(checkPED), "\n")
+cat("Proportion of matches for sires over all data:", 1 - sum(sirematch$check) / nrow(checkPED), "\n")
 ######################################################################################
 
 ######################################################################################
 #### check mismatches for sires and dams (omit unassigned sires or dams)
-dammismatch <- na.omit(checkPED[, c("ID", "dam", "damOrig")])
-dammismatch$check <- ifelse(dammismatch$dam == dammismatch$damOrig, 1, 0)
+dammatch <- na.omit(checkPED[, c("ID", "dam", "damOrig")])
+dammatch$check <- ifelse(dammatch$dam == dammatch$damOrig, 1, 0)
 
 ## % mismatch for dams
-cat("Mismath for dams:", 1 - sum(dammismatch$check) / nrow(dammismatch), "\n")
+cat("Proportion of matches for dams:", 1 - sum(dammatch$check) / nrow(dammatch), "\n")
 
 ## % mismatch for dams over all data
-cat("Mismath for dams over all data:", 1 - sum(dammismatch$check) / nrow(checkPED), "\n")
+cat("Proportion of matches for dams over all data:", 1 - sum(dammatch$check) / nrow(checkPED), "\n")
 #####################################################################################
 
 ################# Specific checks on the mismatches  ###################
-sirewrong <- siremismatch[which(siremismatch$check == 0), ]
+sirewrong <- sirematch[which(sirematch$check == 0), ]
 sirewrong <- merge(sirewrong, example_001_OH, by.x = 1, by.y = 1)
 
-damwrong <- dammismatch[which(dammismatch$check == 0), ]
+damwrong <- dammatch[which(dammatch$check == 0), ]
 damwrong <- merge(damwrong, example_001_OH, by.x = 1, by.y = 1)

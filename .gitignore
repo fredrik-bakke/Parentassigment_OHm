@@ -1,7 +1,9 @@
 plink.exe
 Rplots.pdf
 
-out/*
+.vscode/
+
+out/
 !out/example_001_OH.png
 ./example_001_OH*
 
