@@ -2,14 +2,14 @@
 
 fastOH <- function(genotype) {
   #' opposite homozygous Ferdosi M. and Boerner V. (2014)
-  #' Distinguished values in @param genotype are 0, and 2
+  #' Distinguished values in @param genotype are 0 and 2
   start_time <- Sys.time()
   cat("\n... Starting OH [ algorithm for fast OH by Ferdosi M. and Boerner V. (2014) ] assignment ...\n")
 
   # 2 maps to 1, all else maps to 0
-  fpart <- + (genotype == 2)
+  fpart <- +(genotype == 2)
   # 0 maps to 1, all else maps to 0
-  tlpart <- + (genotype == 0)
+  tlpart <- +(genotype == 0)
 
   cat("... opposing homozygous loci counts started ...\n")
   result <- tcrossprod(fpart, tlpart)
@@ -50,7 +50,13 @@ generate_outfiles <- function(inpgeno, outfilestub, qc, plot = F) {
   dat <- read.table(paste(outfilestub, ".bim", sep = ""))
   dat$sallele <- unique(dat[, 6])[2]
   write.table(dat[, c(2, 7)], "recodeallele.txt", quote = F, col.names = F, row.names = F)
-  system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile", outfilestub, "--thin", qc["thin"], "--recode A --recode-allele recodeallele.txt --out", outfilestub))
+
+  if (qc["thin"] < 1) {
+    system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile", outfilestub, "--thin", qc["thin"], "--recode A --recode-allele recodeallele.txt --out", outfilestub))
+  } else {
+    system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile", outfilestub, "--recode A --recode-allele recodeallele.txt --out", outfilestub))
+  }
+
   unlink("recodeallele.txt")
 }
 
@@ -93,11 +99,11 @@ plot_OH <- function(outfilestub, OH.PD) {
   dev.off()
 }
 
-calculate_pedigree <- function(parentfile, outfilestub, outfolder, threshOMM) {
+calculate_pedigree <- function(parentfile, outfilestub, outfolder, threshOMM, plot = F) {
   dat <- read.table(paste(outfilestub, ".raw", sep = ""), skip = 1)
-  cat("\n...", nrow(dat), "animals and", ncol(dat), "markers remaining for OH analysis ...\n\n")
   ids <- data.frame(ID = as.vector(dat[, 2]), ordercode = seq_len(nrow(dat)), stringsAsFactors = F)
   dat <- data.matrix(dat[, -1:-6])
+  cat("\n...", nrow(dat), "animals and", ncol(dat), "markers remaining for OH analysis ...\n\n")
   dat[is.na(dat)] <- 9
   rownames(dat) <- ids$ID
 
@@ -114,20 +120,30 @@ calculate_pedigree <- function(parentfile, outfilestub, outfolder, threshOMM) {
   sires <- data.frame(ID = sires[sires %in% ids$ID], stringsAsFactors = F)
   dams <- parents[which(parents[, 2] == "F" | parents[, 2] == "2"), "ID"]
   dams <- data.frame(ID = dams[dams %in% ids$ID], stringsAsFactors = F)
-  siredam <- rbind.data.frame(
-    data.frame(ID = sires$ID, Sex = "M", stringsAsFactors = F),
-    data.frame(ID = dams$ID, Sex = "F", stringsAsFactors = F),
-    stringsAsFactors = F
-  )
+
+  if (nrow(dams) == 0) {
+    siredam <- sires
+  } else if (nrow(sires) == 0) {
+    siredam <- dams
+  } else {
+    siredam <- rbind.data.frame(
+      data.frame(ID = sires$ID, Sex = "M", stringsAsFactors = F),
+      data.frame(ID = dams$ID, Sex = "F", stringsAsFactors = F),
+      stringsAsFactors = F
+    )
+  }
+
   write.table(siredam, paste(outfolder, "parentsafterqc.csv", sep = "/"), quote = F, row.names = F, col.names = T, sep = ",")
-  cat("... total number of parents after QC", nrow(siredam), "...\n")
+  cat("... total number of parents after QC is", nrow(siredam), "...\n")
   cat("... with", nrow(sires), "sires and", nrow(dams), "dams ...\n")
 
   OH.PD <- fastOH(genotype = dat)
   diag(OH.PD) <- NA
-  plot_OH(outfilestub, OH.PD)
 
-  cat("... OH pedigree has been generated ...\n")
+  if (plot) {
+    plot_OH(outfilestub, OH.PD)
+  }
+
   pedigreconst <- data.frame(
     ID = character(),
     sire = character(), OHsire = numeric(),
@@ -225,15 +241,19 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
   \n\n")
 
   # Check for the presence of required files
-  if (!file.exists("plink.exe"))
+  if (!file.exists("plink.exe")) {
     stop("... Plink version 1.90 needed !! ...")
+  }
   if (!(file.exists(paste(inpgeno, ".bed", sep = "")) && file.exists(paste(inpgeno, ".bim", sep = "")) && file.exists(paste(inpgeno, ".fam", sep = ""))) &&
-    !(file.exists(paste(inpgeno, ".map", sep = "")) && file.exists(paste(inpgeno, ".ped", sep = ""))))
+    !(file.exists(paste(inpgeno, ".map", sep = "")) && file.exists(paste(inpgeno, ".ped", sep = "")))) {
     stop("... Plink genotype files needed\n The file you specified in not available !! ...")
-  if (!file.exists(parentfile))
+  }
+  if (!file.exists(parentfile)) {
     stop("...The file you specified in not available !! ...")
-  if (missing(matchchecks))
+  }
+  if (missing(matchchecks)) {
     stop("... Specify if you want to undertake match checks or not !! ...")
+  }
 
   outfilestub <- paste(outfolder, outfilename, sep = "/")
   generate_outfiles(inpgeno, outfilestub, qc)
