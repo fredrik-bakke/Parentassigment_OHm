@@ -3,26 +3,30 @@
 fastOH <- function(genotype) {
   #' opposite homozygous Ferdosi M. and Boerner V. (2014)
   #' Distinguished values in @param genotype are 0 and 2
-  start_time <- Sys.time()
-  cat("\n... Starting OH [ algorithm for fast OH by Ferdosi M. and Boerner V. (2014) ] assignment ...\n")
+  # cat("\n... Starting OH [ algorithm for fast OH by Ferdosi M. and Boerner V. (2014) ] assignment ...\n")
 
-  # 2 maps to 1, all else maps to 0
-  fpart <- +(genotype == 2)
-  # 0 maps to 1, all else maps to 0
-  tlpart <- +(genotype == 0)
+  A <- +(genotype == 0) # 0 maps to 1.0, all other values map to 0.0
+  B <- +(genotype == 2) # 2 maps to 1.0, all other values map to 0.0
+  # cat("... opposing homozygous loci counts started ...\n")
+  # result <- tcrossprod(fpart, tlpart)
+  AtB <- A %*% t(B)
+  # cat("... storing OH results in full matrix format ...\n")
+  return(AtB + t(AtB))
+}
 
-  cat("... opposing homozygous loci counts started ...\n")
-  result <- tcrossprod(fpart, tlpart)
-  cat("... storing OH results in full matrix format ...\n")
-  result <- result + t(result)
-  cat("... OH pedigree calculated in", round(difftime(Sys.time(), start_time, units = "secs"), 2), "seconds ...\n")
+fastOHoriginal <- function(genotype) {
+  cm <- genotype - (floor(genotype / 9) * 8)
+  fpart <- floor(cm / 2)
+  lPart <- t(ceiling((cm - 2) / 2))
+  result <- (fpart %*% lPart) * (-1)
+  result <- t(result) + result
   return(result)
 }
 
 
-generate_outfiles <- function(inpgeno, outfilestub, qc, plot = F) {
+generate_outfiles <- function(ingeno, outstub, qc, plot = F) {
   # Setup
-  system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile", inpgeno, "--geno", qc["geno"], "--make-bed --out tmp"))
+  system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile", ingeno, "--geno", qc["geno"], "--make-bed --out tmp"))
   system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile tmp --mind", qc["mind"], "--make-bed --out tmp1"))
   system(paste("plink.exe --silent --allow-no-sex --nonfounders --chr-set", qc["chrset"], "--bfile tmp1 --maf", qc["maf"], "--hwe", qc["hwe"], "--make-bed --out tmp2"))
   system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile tmp2 --het --out het"))
@@ -44,20 +48,14 @@ generate_outfiles <- function(inpgeno, outfilestub, qc, plot = F) {
   write.table(hetpoor[, 1:2], "het.poor", sep = "\t", quote = F, col.names = F, row.names = F)
   cat("...", nrow(hetpoor), "animals with poor heterozygosity ...\n")
   # Filter out samples with poor heterozygosity using file het.poor, and store files in output location
-  system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile tmp2 --remove het.poor --make-bed --out", outfilestub))
+  system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile tmp2 --remove het.poor --make-bed --out", outstub))
   unlink(c("het*", "nosex", "tmp*")) # Delete temporary files
 
-  dat <- read.table(paste(outfilestub, ".bim", sep = ""))
-  dat$sallele <- unique(dat[, 6])[2]
-  write.table(dat[, c(2, 7)], "recodeallele.txt", quote = F, col.names = F, row.names = F)
-
   if (qc["thin"] < 1) {
-    system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile", outfilestub, "--thin", qc["thin"], "--recode A --recode-allele recodeallele.txt --out", outfilestub))
+    system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile", outstub, "--thin", qc["thin"], "--recode A --out", outstub))
   } else {
-    system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile", outfilestub, "--recode A --recode-allele recodeallele.txt --out", outfilestub))
+    system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile", outstub, "--recode A --out", outstub))
   }
-
-  unlink("recodeallele.txt")
 }
 
 assign_parent <- function(ids, parentIDs, offspringID, threshOMM, OH.PD) {
@@ -86,29 +84,7 @@ assign_parent <- function(ids, parentIDs, offspringID, threshOMM, OH.PD) {
   return(list(chosen = chosen, chosenOH = chosenOH, possib = possib, possibOH = possibOH))
 }
 
-plot_OH <- function(outfilestub, OH.PD) {
-  OH.PDall <- OH.PD[lower.tri(OH.PD)]
-  png(paste(outfilestub, ".png", sep = ""), width = 1000, height = 800)
-  layout(mat = matrix(1:4, 2, ncol = 2, byrow = T))
-  hist(OH.PDall, breaks = 250, xlab = "Number of opposite homozygote", main = "")
-  hist(OH.PDall[which(OH.PDall < 500)], breaks = 250, xlab = "Number of opposite homozygote", main = "")
-  dens <- density(OH.PDall, adjust = 2)
-  plot(dens, lty = "dotted", col = "darkgreen", lwd = 2, main = "", xlab = "Number of opposite homozygote")
-  dens <- density(OH.PDall[which(OH.PDall < 500)], adjust = 2)
-  plot(dens, lty = "dotted", col = "darkgreen", lwd = 2, main = "", xlab = "Number of opposite homozygote")
-  dev.off()
-}
-
-calculate_pedigree <- function(parentfile, outfilestub, outfolder, threshOMM, plot = F) {
-  dat <- read.table(paste(outfilestub, ".raw", sep = ""), skip = 1)
-  ids <- data.frame(ID = as.vector(dat[, 2]), ordercode = seq_len(nrow(dat)), stringsAsFactors = F)
-  dat <- data.matrix(dat[, -1:-6])
-  cat("\n...", nrow(dat), "animals and", ncol(dat), "markers remaining for OH analysis ...\n\n")
-  dat[is.na(dat)] <- 9
-  rownames(dat) <- ids$ID
-
-  cat("... Genotypes imported and edited ...\n")
-
+load_parents <- function(parentfile, ids, outfolder) {
   #### parental data with IDs and Sex of parent
   parents <- read.table(paste(parentfile, sep = ""), header = T, stringsAsFactors = F, sep = ",")
   colnames(parents) <- c("ID", "Sex")
@@ -137,12 +113,54 @@ calculate_pedigree <- function(parentfile, outfilestub, outfolder, threshOMM, pl
   cat("... total number of parents after QC is", nrow(siredam), "...\n")
   cat("... with", nrow(sires), "sires and", nrow(dams), "dams ...\n")
 
-  OH.PD <- fastOH(genotype = dat)
+  return(list(parents = parents, sires = sires, dams = dams, offspring = offspring))
+}
+
+plot_OH <- function(outfilestub, OH.PD) {
+  OH.PDall <- OH.PD[lower.tri(OH.PD)]
+  png(paste(outfilestub, ".png", sep = ""), width = 1000, height = 800)
+  layout(mat = matrix(1:4, 2, ncol = 2, byrow = T))
+  hist(OH.PDall, breaks = 250, xlab = "Number of opposite homozygote", main = "")
+  hist(OH.PDall[which(OH.PDall < 500)], breaks = 250, xlab = "Number of opposite homozygote", main = "")
+  dens <- density(OH.PDall, adjust = 2)
+  plot(dens, lty = "dotted", col = "darkgreen", lwd = 2, main = "", xlab = "Number of opposite homozygote")
+  dens <- density(OH.PDall[which(OH.PDall < 500)], adjust = 2)
+  plot(dens, lty = "dotted", col = "darkgreen", lwd = 2, main = "", xlab = "Number of opposite homozygote")
+  dev.off()
+}
+
+load_raw <- function(rawpath) {
+  dat <- read.table(rawpath, skip = 1)
+  ids <- data.frame(ID = as.vector(dat[, 2]), ordercode = seq_len(nrow(dat)), stringsAsFactors = F)
+  dat <- data.matrix(dat[, -1:-6])
+  cat("\n...", nrow(dat), "animals and", ncol(dat), "markers remaining for OH analysis ...\n\n")
+  dat[is.na(dat)] <- 9
+  rownames(dat) <- ids$ID
+
+  cat("... Genotypes imported and edited ...\n")
+
+  return(list(zygosities = dat, ids = ids))
+}
+
+calculate_pedigree <- function(parentfile, outfilestub, outfolder, threshOMM, plot = F) {
+  raw <- load_raw(paste(outfilestub, ".raw", sep = ""))
+  zygosities <- raw$zygosities
+  ids <- raw$ids
+
+  cat("... Genotypes imported and edited ...\n")
+
+  OH.PD <- fastOH(zygosities)
   diag(OH.PD) <- NA
 
   if (plot) {
     plot_OH(outfilestub, OH.PD)
   }
+
+  p <- load_parents(parentfile, ids, outfolder)
+  parents <- p$parents
+  sires <- p$sires
+  dams <- p$dams
+  offspring <- p$offspring
 
   pedigreconst <- data.frame(
     ID = character(),
