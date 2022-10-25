@@ -8,7 +8,7 @@ fastOH <- function(genotype) {
   A <- +(genotype == 0) # 0 maps to 1.0, all other values map to 0.0
   B <- +(genotype == 2) # 2 maps to 1.0, all other values map to 0.0
   # cat("... opposing homozygous loci counts started ...\n")
-  # result <- tcrossprod(fpart, tlpart)
+  # AtB <- tcrossprod(A, B)
   AtB <- A %*% t(B)
   # cat("... storing OH results in full matrix format ...\n")
   return(AtB + t(AtB))
@@ -23,9 +23,9 @@ fastOHoriginal <- function(genotype) {
   return(result)
 }
 
-
 generate_outfiles <- function(ingeno, outstub, qc, plot = F) {
   # Setup
+  # PERF: many of these commands can be combined to reduce IO load.
   system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile", ingeno, "--geno", qc["geno"], "--make-bed --out tmp"))
   system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile tmp --mind", qc["mind"], "--make-bed --out tmp1"))
   system(paste("plink.exe --silent --allow-no-sex --nonfounders --chr-set", qc["chrset"], "--bfile tmp1 --maf", qc["maf"], "--hwe", qc["hwe"], "--make-bed --out tmp2"))
@@ -51,11 +51,8 @@ generate_outfiles <- function(ingeno, outstub, qc, plot = F) {
   system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile tmp2 --remove het.poor --make-bed --out", outstub))
   unlink(c("het*", "nosex", "tmp*")) # Delete temporary files
 
-  if (qc["thin"] < 1) {
-    system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile", outstub, "--thin", qc["thin"], "--recode A --out", outstub))
-  } else {
-    system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile", outstub, "--recode A --out", outstub))
-  }
+  thincmd <- if (qc["thin"] < 1) paste("--thin", qc["thin"]) else ""
+  system(paste("plink.exe --silent --allow-no-sex --chr-set", qc["chrset"], "--bfile", outstub, "--recode A --out", outstub, thincmd))
 }
 
 assign_parent <- function(ids, parentIDs, offspringID, threshOMM, OH.PD) {
@@ -68,10 +65,7 @@ assign_parent <- function(ids, parentIDs, offspringID, threshOMM, OH.PD) {
   OH.PDoffT$ID <- rownames(OH.PDoffT) # Insert IDs, although the data frame is already indexed by them.
   OH.PDoffT <- OH.PDoffT[which(OH.PDoffT$OPH <= threshOMM), ]
 
-  chosen <- NA
-  chosenOH <- NA
-  possib <- NA
-  possibOH <- NA
+  chosen <- chosenOH <- possib <- possibOH <- NA
   if (nrow(OH.PDoffT) > 0) {
     OH.PDoffT <- OH.PDoffT[order(OH.PDoffT$OPH, decreasing = F), ]
     chosen <- OH.PDoffT$ID[1]
@@ -97,17 +91,12 @@ load_parents <- function(parentfile, ids, outfolder) {
   dams <- parents[which(parents[, 2] == "F" | parents[, 2] == "2"), "ID"]
   dams <- data.frame(ID = dams[dams %in% ids$ID], stringsAsFactors = F)
 
-  if (nrow(dams) == 0) {
-    siredam <- sires
-  } else if (nrow(sires) == 0) {
-    siredam <- dams
-  } else {
-    siredam <- rbind.data.frame(
+  siredam <- if (nrow(dams) == 0) sires
+  else if (nrow(sires) == 0) dams
+  else rbind.data.frame(
       data.frame(ID = sires$ID, Sex = "M", stringsAsFactors = F),
       data.frame(ID = dams$ID, Sex = "F", stringsAsFactors = F),
-      stringsAsFactors = F
-    )
-  }
+      stringsAsFactors = F)
 
   write.table(siredam, paste(outfolder, "parentsafterqc.csv", sep = "/"), quote = F, row.names = F, col.names = T, sep = ",")
   cat("... total number of parents after QC is", nrow(siredam), "...\n")
@@ -138,7 +127,6 @@ load_raw <- function(rawpath) {
   rownames(dat) <- ids$ID
 
   cat("... Genotypes imported and edited ...\n")
-
   return(list(zygosities = dat, ids = ids))
 }
 
@@ -152,9 +140,7 @@ calculate_pedigree <- function(parentfile, outfilestub, outfolder, threshOMM, pl
   OH.PD <- fastOH(zygosities)
   diag(OH.PD) <- NA
 
-  if (plot) {
-    plot_OH(outfilestub, OH.PD)
-  }
+  if (plot) plot_OH(outfilestub, OH.PD)
 
   p <- load_parents(parentfile, ids, outfolder)
   parents <- p$parents
@@ -167,8 +153,7 @@ calculate_pedigree <- function(parentfile, outfilestub, outfolder, threshOMM, pl
     sire = character(), OHsire = numeric(),
     dam = character(), OHdam = numeric(),
     sirepossib = character(), OHsirepossib = character(),
-    dampossib = character(), OHdampossib = character()
-  )
+    dampossib = character(), OHdampossib = character())
 
   cat("... assigning", nrow(offspring), "offspring to", nrow(parents), "parents based on the OH counts ...\n")
   start_assign <- Sys.time()
@@ -186,9 +171,8 @@ calculate_pedigree <- function(parentfile, outfilestub, outfolder, threshOMM, pl
     )
     pedigreconst <- rbind.data.frame(pedigreconst, OHmdone, stringsAsFactors = F)
 
-    if (i %% iterchecks.anim == 0) {
+    if (i %% iterchecks.anim == 0)
       cat("... offspring", i, "... out of", nrow(offspring), "... done\n")
-    }
   }
   write.table(pedigreconst, paste(outfilestub, ".csv", sep = ""), quote = F, row.names = F, col.names = T, sep = ",")
 
@@ -197,11 +181,9 @@ calculate_pedigree <- function(parentfile, outfilestub, outfolder, threshOMM, pl
   return(pedigreconst)
 }
 
-
 calculate_matchchecks <- function(matchchecks, outfilestub) {
-  if (!file.exists(paste(matchchecks))) {
+  if (!file.exists(paste(matchchecks)))
     stop("... The file does not exist in the folder !! ...")
-  }
 
   cat("... checking known matches !! ...\n")
   matchanims <- read.table(matchchecks, header = T, stringsAsFactors = F, sep = ",")
@@ -237,18 +219,15 @@ calculate_matchchecks <- function(matchchecks, outfilestub) {
       OHwithcheck = OH.PDoffT$OPH
     )
     matchacheckconst <- rbind.data.frame(matchacheckconst, OHmmatchcheck, stringsAsFactors = F)
-    if (i %% iterchecks.anim == 0) {
+    if (i %% iterchecks.anim == 0)
       cat("...", i, "out of", nrow(matchanimsavail), "match checks ... done\n")
-    }
   }
   write.table(matchacheckconst, paste(outfilestub, "match.csv", sep = ""), quote = F, row.names = F, col.names = T, sep = ",")
   return(matchacheckconst)
 }
 
-
 OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01, hwe = 1e-6, thin = 1, chrset = 30), threshOMM = 25, matchchecks = NULL, outfilename, outfolder = ".") {
   strdate <- paste("started ...", date(), "...")
-
   cat("
   @*************************************************************************************@
   @              Parentage assignment based on opposing homozygotes (OH)                @
@@ -259,28 +238,21 @@ OHm <- function(inpgeno, parentfile, qc = c(geno = 0.05, mind = 0.10, maf = 0.01
   \n\n")
 
   # Check for the presence of required files
-  if (!file.exists("plink.exe")) {
-    stop("... Plink version 1.90 needed !! ...")
-  }
+  if (!file.exists("plink.exe")) stop("... Plink version 1.90 needed !! ...")
   if (!(file.exists(paste(inpgeno, ".bed", sep = "")) && file.exists(paste(inpgeno, ".bim", sep = "")) && file.exists(paste(inpgeno, ".fam", sep = ""))) &&
-    !(file.exists(paste(inpgeno, ".map", sep = "")) && file.exists(paste(inpgeno, ".ped", sep = "")))) {
+    !(file.exists(paste(inpgeno, ".map", sep = "")) && file.exists(paste(inpgeno, ".ped", sep = ""))))
     stop("... Plink genotype files needed\n The file you specified in not available !! ...")
-  }
-  if (!file.exists(parentfile)) {
-    stop("...The file you specified in not available !! ...")
-  }
-  if (missing(matchchecks)) {
-    stop("... Specify if you want to undertake match checks or not !! ...")
-  }
+  if (!file.exists(parentfile)) stop("...The file you specified in not available !! ...")
+  if (missing(matchchecks)) stop("... Specify if you want to undertake match checks or not !! ...")
+  
 
   outfilestub <- paste(outfolder, outfilename, sep = "/")
   generate_outfiles(inpgeno, outfilestub, qc)
 
-  if (matchchecks == F || is.null(matchchecks) || is.na(matchchecks) || matchchecks == "") {
-    resultconst <- calculate_pedigree(parentfile, outfilestub, outfolder, threshOMM)
-  } else {
-    resultconst <- calculate_matchchecks(matchchecks, outfilestub)
-  }
+  resultconst <- if (matchchecks == F || is.null(matchchecks) || is.na(matchchecks) || matchchecks == "")
+    calculate_pedigree(parentfile, outfilestub, outfolder, threshOMM)
+  else
+    calculate_matchchecks(matchchecks, outfilestub)
 
   enddate <- paste("ended ...", date(), "...")
   cat("\n", strdate, "\n", enddate, "\n", sep = "")
